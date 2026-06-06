@@ -1,14 +1,13 @@
-# Virtual environment
 venv/
-
-# Python cache
 __pycache__/
 *.pyc
+*.pyo
 
-# Environment variables
+app/models/personal/
+data/raw/
+
 .env
-
-# Models (optional if large)
-*.pkl
-*.h5
-*.pt
+*.egg-info/
+dist/
+build/
+.DS_Store
