@@ -3,13 +3,25 @@ from datetime import datetime, timezone
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
+# Loads .env file locally — on Railway env vars are injected directly
+# so this is a no-op on production but harmless
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
+# Do NOT raise here at import time — Railway injects vars after module load
+# Let the client creation fail naturally if vars are missing
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
-    raise ValueError("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in .env")
+    import warnings
+    warnings.warn(
+        "SUPABASE_URL or SUPABASE_SERVICE_KEY not found. "
+        "Set these in Railway Variables tab.",
+        RuntimeWarning
+    )
+    # Set placeholder so module loads — will fail at first DB call
+    SUPABASE_URL = SUPABASE_URL or "https://placeholder.supabase.co"
+    SUPABASE_SERVICE_KEY = SUPABASE_SERVICE_KEY or "placeholder"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
