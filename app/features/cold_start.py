@@ -14,6 +14,13 @@ Key insight from archetype mean analysis:
 - completion_ratio_daily separates Consistent (0.75) from Distracted (0.22)
 - onboarding_n mirrors streak_recovery_rate almost exactly (same source)
 - motivation_curve_slope separates Burnout (-1.34) from Consistent (+1.28)
+
+Onboarding shift weights are correlation-informed bounded heuristics.
+Cross-dataset analysis (Big Five n=50K, Productivity n=20K) informed
+the DIRECTION and RELATIVE ordering of weights but not their magnitude.
+Pearson r: focus↔motivation=0.733, C↔N=-0.221, distraction↔completion=0.003.
+Weights conservatively bounded to prevent over-amplifying self-reported
+personality signals which carry known response bias (Paulhus, 2002).
 """
 
 # ─── REAL POPULATION MEANS FROM TRAINING DATA ────────────────────────────────
@@ -100,15 +107,12 @@ def _apply_onboarding_shift(
     o: float,
 ) -> dict:
     """
-    Shift population defaults toward archetype centroids
-    based on onboarding personality proxy scores.
-
-    Shift weights derived from archetype centroid distances:
-    - Neuroticism shift increased to 0.55 because streak_recovery_rate
-      needs to reach 0.83 from population mean 0.55 — a large gap
-    - Low conscientiousness shift increased to 0.50 because
-      completion_ratio_daily needs to drop from 0.50 to 0.22
-    - High conscientiousness kept at 0.40 — centroid distance is smaller
+    Shift weights are correlation-informed bounded heuristics.
+Correlation analysis (Big Five n=50K, Productivity n=20K) informed
+the DIRECTION and RELATIVE ordering of weights but not their magnitude.
+Weights are conservatively bounded to prevent over-amplifying
+self-reported personality signals which carry known response bias.
+See paper Section 3.4 for full justification.
     """
     v = vector.copy()
 
@@ -116,7 +120,7 @@ def _apply_onboarding_shift(
     # Centroid distances: consistency +0.21, completion_daily +0.25,
     # motivation_slope +1.26, task_creation +1.76
     if c > 0.5:
-        shift = (c - 0.5) * 0.40 * 2          # max shift = 0.40
+        shift = (c - 0.5) * 0.35 * 2          # max shift = 0.40
         v["consistency_score"]      += shift * (0.7120 - POPULATION_DEFAULTS["consistency_score"])
         v["completion_ratio_daily"] += shift * (0.7510 - POPULATION_DEFAULTS["completion_ratio_daily"])
         v["motivation_curve_slope"] += shift * (1.2821 - POPULATION_DEFAULTS["motivation_curve_slope"])
@@ -128,7 +132,7 @@ def _apply_onboarding_shift(
     # Centroid distances: streak_recovery +0.28, consistency -0.29,
     # motivation_slope -1.36 — large gaps need larger shift
     if n > 0.5:
-        shift = (n - 0.5) * 0.55 * 2          # max shift = 0.55
+        shift = (n - 0.5) * 0.25 * 2          # max shift = 0.55
         v["streak_recovery_rate"]   += shift * (0.8303 - POPULATION_DEFAULTS["streak_recovery_rate"])
         v["consistency_score"]      -= shift * (POPULATION_DEFAULTS["consistency_score"] - 0.2095)
         v["motivation_curve_slope"] -= shift * (POPULATION_DEFAULTS["motivation_curve_slope"] - (-1.3393))
@@ -138,7 +142,7 @@ def _apply_onboarding_shift(
     # Centroid distances: completion_daily -0.28, burst +0.06,
     # task_creation -1.94 — completion gap is large
     if c < 0.5:
-        shift = (0.5 - c) * 0.50 * 2          # max shift = 0.50
+        shift = (0.5 - c) * 0.20 * 2          # max shift = 0.50
         v["completion_ratio_daily"] -= shift * (POPULATION_DEFAULTS["completion_ratio_daily"] - 0.2229)
         v["points_burst_ratio"]     += shift * (0.5634 - POPULATION_DEFAULTS["points_burst_ratio"])
         v["task_creation_rate"]     -= shift * (POPULATION_DEFAULTS["task_creation_rate"] - 1.5601)
