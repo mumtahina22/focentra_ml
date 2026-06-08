@@ -27,6 +27,9 @@ async def predict(request: Request):
     """
     try:
         body = await request.json()
+        
+
+        print("🔥 RAW WEBHOOK BODY:", body)
 
         # Extract uid from either format
         uid = None
@@ -81,3 +84,4 @@ def get_prediction(uid: str):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
