@@ -26,6 +26,7 @@ from app.supabase_client import (
     fetch_ml_profile,
     upsert_ml_profile,
     log_prediction,
+    log_archetype_transition,
 )
 
 # ─── LOAD GLOBAL MODEL ONCE AT STARTUP ───────────────────────────────────────
@@ -332,25 +333,29 @@ def run_prediction(uid: str, trigger_event: str = "manual") -> dict:
 
 # ── 10. Reassignment gate ─────────────────────────────────────
     if current_archetype is None:
-        # First prediction ever — always assign
         final_archetype = new_archetype
 
     elif data_source in ("provisional", "cold_start", "hybrid_early"):
-        # Early stage — cold start predictions are inherently uncertain
-        # Always update to latest model output, never gate on confidence
-        # These are not stable assignments worth protecting
         final_archetype = new_archetype
 
     elif should_reassign(current_archetype, new_archetype, confidence):
-        # Established user — only reassign if confidence is high enough
         final_archetype = new_archetype
-
+        # ── Transition detected — log it ──────────────────────
+        if current_archetype != new_archetype:
+            try:
+                log_archetype_transition(
+                    uid=uid,
+                    from_archetype=current_archetype,
+                    to_archetype=new_archetype,
+                    confidence=confidence,
+                    days_active=days_active,
+                )
+            except Exception as e:
+                print(f"Transition log failed (non-critical): {e}")
     else:
-        # Not confident enough — keep existing stable label
         final_archetype = current_archetype
 
     # ── 11. Write to Supabase ─────────────────────────────────────
-    # Strip internal metadata keys before storing
     feature_snapshot = {
         k: v for k, v in raw_features.items()
         if not k.startswith("_")
@@ -373,6 +378,8 @@ def run_prediction(uid: str, trigger_event: str = "manual") -> dict:
         trigger_event=trigger_event,
         feature_vector=feature_snapshot,
     )
+
+
 
     # ── 12. Return full result ────────────────────────────────────
     return {
