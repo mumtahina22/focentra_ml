@@ -114,3 +114,45 @@ def log_prediction(
         "trigger_event": trigger_event,
         "feature_vector": feature_vector,
     }).execute()
+
+def log_archetype_transition(
+    uid: str,
+    from_archetype: str,
+    to_archetype: str,
+    confidence: float,
+    days_active: int,
+) -> None:
+    """Log when a user's archetype changes"""
+    supabase.from_("archetype_transitions").insert({
+        "uid": uid,
+        "from_archetype": from_archetype,
+        "to_archetype": to_archetype,
+        "confidence": confidence,
+        "days_active": days_active,
+    }).execute()
+
+
+def fetch_archetype_transitions(uid: str, limit: int = 10) -> list:
+    """Fetch archetype transition history for a user"""
+    result = (
+        supabase.from_("archetype_transitions")
+        .select("*")
+        .eq("uid", uid)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
+def fetch_prediction_history(uid: str, limit: int = 30) -> list:
+    """Fetch recent prediction logs for progress graph"""
+    result = (
+        supabase.from_("prediction_logs")
+        .select("archetype, confidence, feature_vector, created_at")
+        .eq("uid", uid)
+        .order("created_at", desc=False)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
