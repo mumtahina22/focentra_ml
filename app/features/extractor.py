@@ -79,18 +79,30 @@ def compute_focus_features(sessions: list) -> dict:
     focus_sessions_per_day : rolling 14d avg sessions per active day
     avg_session_hour        : mean hour-of-day across all sessions
     session_hour_variance   : std dev of session hours (schedule consistency)
+
+    NOTE: Supabase stores timestamps in UTC.
+    Bangladesh Standard Time = UTC+6.
+    We convert to local time so avg_session_hour reflects actual
+    user behavior (9am local, not 3am UTC).
+    This is noted as a limitation in the paper — a production system
+    would store user timezone at signup.
     """
     recent = _rolling_window(sessions, "timestamp", 14)
 
-    # Sessions per day (only count days that had at least 1 session)
+    # Bangladesh Standard Time offset = UTC+6
+    # Change this value if deploying for users in other timezones
+    LOCAL_OFFSET_HOURS = 6
+
     day_counts: dict = {}
     hours = []
     for s in recent:
         dt = _parse_dt(s.get("timestamp"))
         if dt:
-            day_key = dt.date()
+            # Convert UTC → local time
+            local_dt = dt + timedelta(hours=LOCAL_OFFSET_HOURS)
+            day_key = local_dt.date()
             day_counts[day_key] = day_counts.get(day_key, 0) + 1
-            hours.append(dt.hour + dt.minute / 60.0)
+            hours.append(local_dt.hour + local_dt.minute / 60.0)
 
     if day_counts:
         focus_per_day = round(sum(day_counts.values()) / len(day_counts), 4)
@@ -101,7 +113,6 @@ def compute_focus_features(sessions: list) -> dict:
         avg_hour = round(float(np.mean(hours)), 4)
         hour_variance = round(float(np.std(hours)), 4)
     else:
-        # Population defaults from student dataset
         avg_hour = 15.3
         hour_variance = 3.5
 
