@@ -146,13 +146,14 @@ def fetch_archetype_transitions(uid: str, limit: int = 10) -> list:
 
 
 def fetch_prediction_history(uid: str, limit: int = 30) -> list:
-    """Fetch recent prediction logs for progress graph"""
+    """Fetch the most recent prediction logs for the progress graph,
+    returned oldest-first so the graph reads left to right."""
     result = (
         supabase.from_("prediction_logs")
         .select("archetype, confidence, feature_vector, created_at")
         .eq("uid", uid)
-        .order("created_at", desc=False)
+        .order("created_at", desc=True)
         .limit(limit)
         .execute()
     )
-    return result.data or []
+    return list(reversed(result.data or []))

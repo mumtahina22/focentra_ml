@@ -44,13 +44,15 @@ def retrain_all_users():
                 skipped += 1
                 continue
 
-            # Fetch prediction history for this user
+            # Fetch this user's 90 MOST RECENT predictions
+            # (desc=True: ascending order + limit returned the oldest 90,
+            #  so the personal model never saw new behaviour)
             logs = (
                 client
                 .from_("prediction_logs")
                 .select("feature_vector, archetype")
                 .eq("uid", uid)
-                .order("created_at", desc=False)
+                .order("created_at", desc=True)
                 .limit(90)
                 .execute()
             )

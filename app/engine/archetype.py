@@ -293,11 +293,15 @@ def run_prediction(uid: str, trigger_event: str = "manual") -> dict:
         # Cold start path:
         # Fill missing features with population defaults
         # but override with any real data we already have
+        # Only features computed from real activity overwrite the
+        # population means; "no data" fallbacks are left out.
+        observed = set(raw_features.get("_observed", []))
+        partial = {k: v for k, v in raw_features.items() if k in observed}
         cold_vector_dict = build_cold_start_vector(
             onboarding_c=onboarding_c,
             onboarding_n=onboarding_n,
             onboarding_o=onboarding_o,
-            partial_features=raw_features,
+            partial_features=partial,
         )
         feature_vector = features_to_vector(cold_vector_dict)
         data_source = "cold_start" if days_active == 0 else "hybrid_early"

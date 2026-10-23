@@ -234,6 +234,35 @@ def compute_streak_recovery_rate(user: dict, days_active: int) -> dict:
     return {"streak_recovery_rate": rate}
 
 
+def _observed_features(user: dict, tasks: list, sessions: list,
+                       points_log: list, days: int) -> set:
+    """
+    Names of features computed from real activity. Features not in this set
+    were filled with a fallback value (e.g. 0.5 completion with no tasks,
+    0.0 burst ratio with fewer than 2 days of points).
+    """
+    observed = set()
+    for interval in ["Daily", "Weekly", "Monthly"]:
+        if any(t.get("choose") == interval for t in tasks):
+            observed.add(f"completion_ratio_{interval.lower()}")
+    if tasks:
+        observed.add("task_creation_rate")
+    if _rolling_window(sessions, "timestamp", 14):
+        observed.update({"focus_sessions_per_day", "avg_session_hour",
+                         "session_hour_variance"})
+    recent_points = _rolling_window(points_log, "created_at", 14)
+    if recent_points:
+        observed.add("weekly_point_delta")
+    point_days = {_parse_dt(p.get("created_at")).date() for p in recent_points}
+    if len(point_days) >= 2:
+        observed.update({"motivation_curve_slope", "points_burst_ratio"})
+    if (user.get("currentstreak") or 0) > 0:
+        observed.add("consistency_score")
+    if days > 0:
+        observed.add("streak_recovery_rate")
+    return observed
+
+
 # ─── MAIN EXTRACTOR ──────────────────────────────────────────────────────────
 
 def extract_features(uid: str) -> dict:
@@ -276,7 +305,13 @@ def extract_features(uid: str) -> dict:
         features["onboarding_n"] = 0.5
         features["onboarding_o"] = 0.5
 
-    # 5. Metadata (not fed to model, used by orchestration layer)
+    # 5. Which features are really observed (not a "no data" fallback).
+    #    The cold-start builder only overwrites population means with these,
+    #    so a new user's empty history is not read as real zeros.
+    features["_observed"] = sorted(_observed_features(user, tasks, sessions,
+                                                      points_log, days))
+
+    # 6. Metadata (not fed to model, used by orchestration layer)
     features["_days_active"] = days
     features["_has_enough_data"] = days >= 14
     features["_uid"] = uid
