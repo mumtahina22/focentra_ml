@@ -105,7 +105,7 @@ def compute_alpha(days_active: int) -> float:
 
 def predict_global(feature_vector: list) -> dict:
     """
-    Run the global Random Forest on a feature vector.
+    Run the global Random Forest (12 behavioural features) on a feature vector.
     Returns probability distribution across all 5 archetypes.
     """
     X = np.array(feature_vector).reshape(1, -1)
@@ -128,7 +128,7 @@ def train_personal_model(
     Train a Gaussian Naive Bayes model on a user's personal
     feature history and persist it to disk immediately.
 
-    history_vectors : list of feature vectors (each a list of 15 floats)
+    history_vectors : list of feature vectors (one float per FEATURE_COLUMNS entry)
     history_labels  : list of archetype strings matching each vector
 
     Requires at least 3 data points to train.
@@ -174,6 +174,11 @@ def predict_personal(uid: str, feature_vector: list) -> dict | None:
             return None
 
     gnb = _personal_models[uid]
+    # A personal model trained on an older feature set (e.g. the 15-feature
+    # version) cannot be used; ignore it until the next weekly retrain.
+    if getattr(gnb, "n_features_in_", len(feature_vector)) != len(feature_vector):
+        _personal_models.pop(uid, None)
+        return None
     X = np.array(feature_vector).reshape(1, -1)
     proba = gnb.predict_proba(X)[0]
 

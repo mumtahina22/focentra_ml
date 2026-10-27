@@ -1,0 +1,44 @@
+{
+  "mean": {
+    "completion_ratio_daily": 0.0794,
+    "completion_ratio_weekly": 0.0036,
+    "completion_ratio_monthly": 0.059,
+    "focus_sessions_per_day": 0.0091,
+    "avg_session_hour": 0.2055,
+    "session_hour_variance": 0.017,
+    "consistency_score": 0.1481,
+    "streak_recovery_rate": 0.1438,
+    "motivation_curve_slope": 0.0613,
+    "points_burst_ratio": 0.0919,
+    "weekly_point_delta": 0.0664,
+    "task_creation_rate": 0.0633
+  },
+  "std": {
+    "completion_ratio_daily": 0.005,
+    "completion_ratio_weekly": 0.0012,
+    "completion_ratio_monthly": 0.0054,
+    "focus_sessions_per_day": 0.0016,
+    "avg_session_hour": 0.0056,
+    "session_hour_variance": 0.0021,
+    "consistency_score": 0.0072,
+    "streak_recovery_rate": 0.0066,
+    "motivation_curve_slope": 0.0032,
+    "points_burst_ratio": 0.0036,
+    "weekly_point_delta": 0.0037,
+    "task_creation_rate": 0.0043
+  },
+  "impurity": {
+    "completion_ratio_daily": 0.0963,
+    "completion_ratio_weekly": 0.0136,
+    "completion_ratio_monthly": 0.0528,
+    "focus_sessions_per_day": 0.027,
+    "avg_session_hour": 0.184,
+    "session_hour_variance": 0.0315,
+    "consistency_score": 0.1347,
+    "streak_recovery_rate": 0.1178,
+    "motivation_curve_slope": 0.1082,
+    "points_burst_ratio": 0.0795,
+    "weekly_point_delta": 0.0634,
+    "task_creation_rate": 0.0911
+  }
+}

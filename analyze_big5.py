@@ -43,7 +43,7 @@ print(f"Columns: {personality_cols}")
 # EST: reverse EST1, EST3, EST5, EST6, EST7, EST8, EST9, EST10
 # AGR: reverse AGR1, AGR3, AGR5, AGR7
 # CSN: reverse CSN2, CSN4, CSN6, CSN8
-# OPN: reverse OPN2, OPN4, OPN6, OPN8
+# OPN: reverse OPN2, OPN4, OPN6  (OPN8 is positively keyed)
 
 def reverse(series):
     return 6 - series  # 1→5, 2→4, 3→3, 4→2, 5→1
@@ -84,7 +84,7 @@ big5['C_score'] = big5_csn.mean(axis=1)
 # Openness
 opn_cols = [f'OPN{i}' for i in range(1, 11) if f'OPN{i}' in big5.columns]
 big5_opn = big5[opn_cols].copy()
-for col in ['OPN2', 'OPN4', 'OPN6', 'OPN8']:
+for col in ['OPN2', 'OPN4', 'OPN6']:   # OPN8 'I use difficult words' is NOT reversed (IPIP key)
     if col in big5_opn.columns:
         big5_opn[col] = reverse(big5_opn[col])
 big5['O_score'] = big5_opn.mean(axis=1)

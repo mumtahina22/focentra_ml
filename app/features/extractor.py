@@ -263,6 +263,48 @@ def _observed_features(user: dict, tasks: list, sessions: list,
     return observed
 
 
+# ─── TRAINING-SCALE ALIGNMENT ────────────────────────────────────────────────
+# The model was trained on proxy columns with fixed ranges. Raw app values can
+# fall far outside them (a weekly point change of -200 when training only saw
+# -30..+24), and a tree model then treats them like the most extreme value it
+# saw. So points are expressed relative to the app's goals and every feature
+# is clipped to its training range (1st-99th percentile, see paper_checks.py).
+
+WEEKLY_GOAL_POINTS = 700.0   # dashboard weekly goal
+
+TRAINING_RANGE = {
+    "completion_ratio_daily":   (0.0, 1.0),
+    "completion_ratio_weekly":  (0.0, 1.0),
+    "completion_ratio_monthly": (0.0, 1.0),
+    "focus_sessions_per_day":   (0.0, 6.6),
+    "avg_session_hour":         (0.0, 24.0),
+    "session_hour_variance":    (0.0, 6.0),
+    "consistency_score":        (0.0, 1.0),
+    "streak_recovery_rate":     (0.0, 1.0),
+    "motivation_curve_slope":   (-3.5, 3.5),
+    "points_burst_ratio":       (0.0, 1.0),
+    "weekly_point_delta":       (-30.0, 24.0),
+    "task_creation_rate":       (0.0, 7.0),
+}
+
+
+def align_to_training_scale(features: dict) -> dict:
+    """
+    weekly_point_delta  : change in weekly points as a share of the weekly goal,
+                          times 30 (losing the whole goal = -30, the training minimum).
+    motivation_curve_slope : daily points per day; with a daily goal of 100 this is
+                          already "% of the daily goal per day", so it is only clipped.
+    Everything else     : clipped to its training range.
+    """
+    f = dict(features)
+    if "weekly_point_delta" in f:
+        f["weekly_point_delta"] = 30.0 * f["weekly_point_delta"] / WEEKLY_GOAL_POINTS
+    for key, (lo, hi) in TRAINING_RANGE.items():
+        if key in f and f[key] is not None:
+            f[key] = round(float(min(max(f[key], lo), hi)), 4)
+    return f
+
+
 # ─── MAIN EXTRACTOR ──────────────────────────────────────────────────────────
 
 def extract_features(uid: str) -> dict:
@@ -294,6 +336,7 @@ def extract_features(uid: str) -> dict:
     features.update(compute_weekly_point_delta(points_log))
     features.update(compute_task_creation_rate(tasks))
     features.update(compute_streak_recovery_rate(user, days))
+    features = align_to_training_scale(features)
 
     # 4. Pull onboarding scores from ml_profile if they exist
     if ml_profile:
@@ -321,7 +364,10 @@ def extract_features(uid: str) -> dict:
 
 # ─── ORDERED FEATURE VECTOR (what the model actually sees) ───────────────────
 
-# This exact order must match training data columns — never change order
+# This exact order must match training data columns — never change order.
+# Version 2: the three onboarding answers are NOT model inputs any more.
+# They act only through the cold-start shift (cold_start.py), because in the
+# training data they were copies of behaviour, not real self-reports.
 FEATURE_COLUMNS = [
     "completion_ratio_daily",
     "completion_ratio_weekly",
@@ -335,9 +381,6 @@ FEATURE_COLUMNS = [
     "points_burst_ratio",
     "weekly_point_delta",
     "task_creation_rate",
-    "onboarding_c",
-    "onboarding_n",
-    "onboarding_o",
 ]
 
 

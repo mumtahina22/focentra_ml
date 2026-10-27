@@ -95,7 +95,7 @@ ARCHETYPE_CENTROIDS = {
 # Logic derived from Big Five → archetype correlations:
 # High C (conscientiousness) → toward Consistent Achiever centroid
 # High N (neuroticism)       → toward Burnout-Prone centroid
-# High O (openness)          → slight Easily Distracted signal
+# Openness (o) is stored but does not shift the vector (weakest signal).
 #
 # Shift is partial (weighted by score) so it never fully
 # overrides the population prior — it just tilts it.
@@ -112,7 +112,8 @@ Correlation analysis (Big Five n=50K, Productivity n=20K) informed
 the DIRECTION and RELATIVE ordering of weights but not their magnitude.
 Weights are conservatively bounded to prevent over-amplifying
 self-reported personality signals which carry known response bias.
-See paper Section 3.4 for full justification.
+Version 3: the onboarding answers act ONLY through this shift; the
+global model no longer takes onboarding_c/n/o as inputs.
     """
     v = vector.copy()
 
@@ -120,7 +121,7 @@ See paper Section 3.4 for full justification.
     # Centroid distances: consistency +0.21, completion_daily +0.25,
     # motivation_slope +1.26, task_creation +1.76
     if c > 0.5:
-        shift = (c - 0.5) * 0.35 * 2          # max shift = 0.40
+        shift = (c - 0.5) * 0.35 * 2          # max shift = 0.35
         v["consistency_score"]      += shift * (0.7120 - POPULATION_DEFAULTS["consistency_score"])
         v["completion_ratio_daily"] += shift * (0.7510 - POPULATION_DEFAULTS["completion_ratio_daily"])
         v["motivation_curve_slope"] += shift * (1.2821 - POPULATION_DEFAULTS["motivation_curve_slope"])
@@ -130,9 +131,9 @@ See paper Section 3.4 for full justification.
 
     # ── High neuroticism → Burnout-Prone ──────────────────────────
     # Centroid distances: streak_recovery +0.28, consistency -0.29,
-    # motivation_slope -1.36 — large gaps need larger shift
+    # motivation_slope -1.36
     if n > 0.5:
-        shift = (n - 0.5) * 0.25 * 2          # max shift = 0.55
+        shift = (n - 0.5) * 0.25 * 2          # max shift = 0.25
         v["streak_recovery_rate"]   += shift * (0.8303 - POPULATION_DEFAULTS["streak_recovery_rate"])
         v["consistency_score"]      -= shift * (POPULATION_DEFAULTS["consistency_score"] - 0.2095)
         v["motivation_curve_slope"] -= shift * (POPULATION_DEFAULTS["motivation_curve_slope"] - (-1.3393))
@@ -140,9 +141,9 @@ See paper Section 3.4 for full justification.
 
     # ── Low conscientiousness → Easily Distracted ─────────────────
     # Centroid distances: completion_daily -0.28, burst +0.06,
-    # task_creation -1.94 — completion gap is large
+    # task_creation -1.94
     if c < 0.5:
-        shift = (0.5 - c) * 0.20 * 2          # max shift = 0.50
+        shift = (0.5 - c) * 0.20 * 2          # max shift = 0.20
         v["completion_ratio_daily"] -= shift * (POPULATION_DEFAULTS["completion_ratio_daily"] - 0.2229)
         v["points_burst_ratio"]     += shift * (0.5634 - POPULATION_DEFAULTS["points_burst_ratio"])
         v["task_creation_rate"]     -= shift * (POPULATION_DEFAULTS["task_creation_rate"] - 1.5601)
